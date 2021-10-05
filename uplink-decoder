@@ -1,0 +1,217 @@
+
+function Decoder(bytes, port) {
+    if(bytes === null || bytes === 0){
+        obj.status_dedcoded = false;
+        obj.status_info = "payload_raw: " + payloadRawHexToString(bytes);
+    } else {
+        var TYPE_SP1 = 0x1;
+        var TYPE_SP9 = 0x9;
+        var SUBTYPE_SP9_1 = 0x01;
+        var SUBTYPE_SP9_2 = 0x02;
+        var TYPE_AP1 = 0xA;
+
+        var SP_REMOVAL = 0x8000;
+        var SP_TEST = 0x0001;
+        var SP_SMOKE = 0x0002;
+        var SP_OBSTRUCTION = 0x0004;
+        var SP_MONITORING = 0x0008;
+        var SP_LED_FAIL = 0x0010;
+        const SP_VALUES = [ "Removal detection", "Test alarm", "Smoke alarm", 
+          "Obstruction detected", "Surrounding area monitoring", "LED failure"];
+
+        var SP9_REMOVAL = 0x01;
+        var SP9_BATTERY_EOL = 0x04;
+        var SP9_HORN_FAIL = 0x08;
+        var SP9_OBSTRUCTION = 0x10;
+        var SP9_MONITORING = 0x20;
+          const SP9_VALUES = [ "Removal detection", "Battery end of life", "Horn failure", 
+          "Obstruction detected", "Surrounding area monitoring"];
+      
+        var A_REMOVAL = 0x02;
+        var A_BATTERY_END_OF_LIFE = 0x0C;
+        var A_HORN_DRIVE_LEVEL_FAILURE = 0x16;
+        var A_TEST_ALARM = 0x18;
+        var A_SMOKE_ALARM = 0x19;
+        var A_OBSTRUCTION_DETECTION = 0x1A;
+        var A_OBJECT_IN_THE_SURROUNDING_AREA = 0x1C;
+        var AP_VALUES = ["removal", "battery eol",
+            "horn level failure", "test alarm", "smoke alarm","obstruction ", "object in the surrounding area"];
+        
+        var obj = {};
+        obj.port = port;
+
+        switch (bytes[0] >> 4) {
+            case TYPE_SP1:
+                obj.packet_type = 1;
+                obj.packet_subtype = 0;
+                obj.packet_type_info = "synchronous";
+                obj.status_dedcoded = true;
+                obj.status_info = "payload_raw: " + payloadRawHexToString(bytes);
+                if (bytes[1] & SP_REMOVAL) {
+                  obj.status_interpretation = SP_VALUES[0];
+                }
+                if (bytes[1] & SP_TEST) {
+                  if (obj.status_interpretation!=null ) {
+                    obj.status_interpretation+=", "+SP_VALUES[1];
+                  } else {
+                    obj.status_interpretation=SP_VALUES[1];
+                  }
+                }
+                if (bytes[1] & SP_SMOKE) {
+                  if (obj.status_interpretation!=null) {
+                    obj.status_interpretation+=", "+SP_VALUES[2];
+                  } else {
+                    obj.status_interpretation=SP_VALUES[2];
+                  }
+                }
+                if (bytes[1] & SP_OBSTRUCTION) {
+                  if (obj.status_interpretation!=null) {
+                    obj.status_interpretation+=", "+SP_VALUES[3];
+                  } else {
+                    obj.status_interpretation=SP_VALUES[3];
+                  }
+                }
+                if (bytes[1] & SP_MONITORING) {
+                  if (obj.status_interpretation!=null) {
+                    obj.status_interpretation+=", "+SP_VALUES[4];
+                  } else {
+                   obj.status_interpretation=SP_VALUES[4];
+                  }
+                }
+                if (bytes[1] & SP_LED_FAIL) {
+                  if (obj.status_interpretation!=null) {
+                    obj.status_interpretation+=", "+SP_VALUE[5];
+                  } else {
+                   obj.status_interpretation=SP_VALUES[5];
+                  }
+                }
+                break;
+            case TYPE_AP1:
+                obj.packet_type = 1;
+                obj.packet_subtype = 0;
+                obj.packet_type_info = "asynchronous";
+                obj.date = (decodeDate(bytes [3] << 8 | bytes[4]));
+                obj.status_interpretation = null;
+                obj.status_dedcoded = true;
+                obj.status_info = null;
+                obj.status_info = "payload_raw: " + payloadRawHexToString(bytes);
+
+                switch (bytes[1]) {
+                    case A_REMOVAL:
+                        obj.status_interpretation = AP_VALUES[0];
+                        break;
+                    case A_BATTERY_END_OF_LIFE:
+                        obj.status_interpretation = AP_VALUES[1];
+                        break;
+                    case A_HORN_DRIVE_LEVEL_FAILURE:
+                        obj.status_interpretation = AP_VALUES[2];
+                        break;
+                    case A_TEST_ALARM:
+                        obj.status_interpretation = AP_VALUES[3];
+                        break;
+                    case A_SMOKE_ALARM:
+                        obj.status_interpretation = AP_VALUES[4];
+                        break;
+                    case A_OBSTRUCTION_DETECTION:
+                        obj.status_interpretation = AP_VALUES[5];
+                        break;
+                    case A_OBJECT_IN_THE_SURROUNDING_AREA:
+                        obj.status_interpretation = AP_VALUES[6];
+                        break;
+                    default:
+                        obj.status_info = "payload_raw: " + payloadRawHexToString(bytes);
+                        obj.status_dedcoded = false;
+                        break;
+                }
+                break;
+              case TYPE_SP9:
+                obj.packet_type = 9;
+                obj.packet_subtype=(bytes[0] & SUBTYPE_SP9_1?1:2);
+                obj.packet_type_info = "synchronous";
+                obj.status_dedcoded = true;
+                obj.status_info = "payload_raw: " + payloadRawHexToString(bytes);
+                obj.date = (decodeSP9Date(bytes[4] << 8 | bytes[3]));
+                if (bytes[5] & SP9_REMOVAL) {
+                    obj.status_interpretation = SP9_VALUES[0];
+                  }
+                  if (bytes[5] & SP9_BATTERY_EOL) {
+                    if (obj.status_interpretation!=null ) {
+                      obj.status_interpretation+=", "+SP9_VALUES[1];
+                    } else {
+                      obj.status_interpretation=SP9_VALUES[1];
+                    }
+                  }
+                  if (bytes[5] & SP9_HORN_FAIL) {
+                    if (obj.status_interpretation!=null) {
+                      obj.status_interpretation+=", "+SP9_VALUES[2];
+                    } else {
+                      obj.status_interpretation=SP9_VALUES[2];
+                    }
+                  }
+                  if (bytes[5] & SP9_OBSTRUCTION) {
+                    if (obj.status_interpretation!=null) {
+                      obj.status_interpretation+=", "+SP9_VALUES[3];
+                    } else {
+                      obj.status_interpretation=SP9_VALUES[3];
+                    }
+                  }
+                  if (bytes[5] & SP9_MONITORING) {
+                    if (obj.status_interpretation!=null) {
+                      obj.status_interpretation+=", "+SP9_VALUES[4];
+                    } else {
+                     obj.status_interpretation=SP9_VALUES[4];
+                    }
+                  }
+              break;
+            default:
+                obj.status_dedcoded = false;
+                obj.status_info = "payload_raw: " + payloadRawHexToString(bytes);
+                break;
+        }
+    }
+    return obj;
+}
+
+
+function decodeDate(bytes) {
+    var day = (bytes & 0x1F00) >> 8;
+    var month = (bytes & 0x000F);
+    var year = ((bytes & 0xE000) >> 10) | ((bytes & 0x00F0) >> 4);
+    return "20" + year.toString() + "-" + month.toString() + "-" + day.toString();
+}
+
+function decodeSP9Date(bytes) {
+    var day = (bytes & 0x001F);
+    var month = (bytes & 0x0F00) >> 8;
+    var year = ((bytes & 0xF000) >> 9) | ((bytes & 0x00E0) >> 5);
+    return "20" + year.toString() + "-" + month.toString() + "-" + day.toString();
+}
+
+function payloadRawHexToString(byteArray) {
+    var str;
+    if(byteArray === null){
+        return "00";
+    }else {
+        str = byteArray.map(function (byte) {
+            return ('0' + (byte & 0xFF).toString(16)).slice(-2);
+        }).join('');
+        var strArray = str.match(/.{2}/g);
+        str = strArray.map(function (value, index, array) {
+            return array[index];
+        });
+        var x = str.join();
+        return x.replace(/([,])/g, " ").toLocaleUpperCase();
+    }
+}
+
+function decodeUplink(input) {
+  payload=Decoder(input.bytes, input.fPort)
+  return {
+    data: {
+      bytes: input.bytes,
+      payload: payload
+    },
+    warnings: [],
+    errors: []
+  };
+}
